@@ -1,0 +1,15 @@
+{
+	"name": "pi-ollama-cloud",
+	"version": "0.1.0",
+	"description": "Connect Pi / Tallow to Ollama Cloud with live model discovery and /login support",
+	"keywords": ["pi-package", "tallow", "pi", "ollama", "cloud", "provider", "extension", "login"],
+	"license": "MIT",
+	"author": "",
+	"repository": {
+		"type": "git",
+		"url": ""
+	},
+	"pi": {
+		"extensions": ["./ollama-cloud"]
+	}
+}
