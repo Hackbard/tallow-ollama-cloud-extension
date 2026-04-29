@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Runtime / OS
+.DS_Store
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Build artifacts
+dist/
+*.js.map
