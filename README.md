@@ -4,8 +4,10 @@
 
 **Connect [Pi](https://pi.dev) / [Tallow](https://tallow.dungle-scrubs.com) to Ollama Cloud with live model discovery**
 
+[![CI](https://github.com/Hackbard/pi-ollama-cloud/actions/workflows/ci.yml/badge.svg)](https://github.com/Hackbard/pi-ollama-cloud/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-22%20passing-brightgreen?logo=bun)](https://github.com/Hackbard/pi-ollama-cloud/tree/main/ollama-cloud/__tests__)
+[![Version](https://img.shields.io/badge/version-v0.1.0-blue)](https://github.com/Hackbard/pi-ollama-cloud/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Pi Package](https://img.shields.io/badge/pi-package-blue?logo=terminal)](https://pi.dev)
 
 </div>
 
@@ -35,7 +37,7 @@
 
 ```bash
 # 1. Install the extension
-pi install git:github.com/your-username/pi-ollama-cloud
+pi install git:github.com/Hackbard/pi-ollama-cloud
 
 # 2. Start tallow / pi
 tallow
@@ -58,7 +60,7 @@ That's it. The model list stays in sync with Ollama Cloud automatically.
 ### Option A: Via `pi install` (Recommended)
 
 ```bash
-pi install git:github.com/your-username/pi-ollama-cloud
+pi install git:github.com/Hackbard/pi-ollama-cloud
 ```
 
 Then `/reload` or restart your pi/tallow session.
@@ -67,11 +69,11 @@ Then `/reload` or restart your pi/tallow session.
 
 ```bash
 # For pi
-git clone https://github.com/your-username/pi-ollama-cloud.git
+git clone https://github.com/Hackbard/pi-ollama-cloud.git
 cp -r pi-ollama-cloud/ollama-cloud ~/.pi/agent/extensions/
 
 # For tallow
-git clone https://github.com/your-username/pi-ollama-cloud.git
+git clone https://github.com/Hackbard/pi-ollama-cloud.git
 cp -r pi-ollama-cloud/ollama-cloud ~/.tallow/extensions/
 ```
 

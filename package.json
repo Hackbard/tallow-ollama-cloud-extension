@@ -7,7 +7,7 @@
 	"author": "",
 	"repository": {
 		"type": "git",
-		"url": ""
+		"url": "https://github.com/Hackbard/pi-ollama-cloud.git"
 	},
 	"pi": {
 		"extensions": ["./ollama-cloud"]
