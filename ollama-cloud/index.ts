@@ -65,7 +65,6 @@ export function guessReasoning(id: string): boolean {
 
 export function guessContextWindow(id: string): number {
 	if (id.includes("kimi-k2")) return 256_000;
-	if (id.includes("deepseek-v3")) return 128_000;
 	return 128_000;
 }
 
@@ -204,22 +203,36 @@ export default async function ollamaCloudExtension(pi: ExtensionAPI) {
 	// 2. Periodic refresh.
 	let refreshInterval: ReturnType<typeof setInterval> | null = null;
 
-	pi.on("session_start", async () => {
-		const fetched = await fetchOllamaModels();
-		if (fetched && fetched.length > 0) {
-			pi.registerProvider(PROVIDER_ID, buildProviderConfig(fetched, process.env.OLLAMA_CLOUD_API_KEY));
-		}
+	pi.on("session_start", () => {
+		(async () => {
+			try {
+				const fetched = await fetchOllamaModels();
+				if (fetched && fetched.length > 0) {
+					pi.registerProvider(PROVIDER_ID, buildProviderConfig(fetched, envKey));
+				}
 
-		if (refreshInterval) {
-			clearInterval(refreshInterval);
-			refreshInterval = null;
-		}
-		refreshInterval = setInterval(async () => {
-			const live = await fetchOllamaModels();
-			if (live && live.length > 0) {
-				pi.registerProvider(PROVIDER_ID, buildProviderConfig(live, process.env.OLLAMA_CLOUD_API_KEY));
+				if (refreshInterval) {
+					clearInterval(refreshInterval);
+					refreshInterval = null;
+				}
+				refreshInterval = setInterval(() => {
+					(async () => {
+						try {
+							const live = await fetchOllamaModels();
+							if (live && live.length > 0) {
+								pi.registerProvider(PROVIDER_ID, buildProviderConfig(live, envKey));
+							}
+						} catch (err) {
+							const msg = err instanceof Error ? err.message : String(err);
+							console.error(`[ollama-cloud] Periodic refresh failed: ${msg}`);
+						}
+					})();
+				}, 5 * 60 * 1000);
+			} catch (err) {
+				const msg = err instanceof Error ? err.message : String(err);
+				console.error(`[ollama-cloud] session_start handler error: ${msg}`);
 			}
-		}, 5 * 60 * 1000);
+		})();
 	});
 
 	pi.on("session_shutdown", () => {
@@ -234,15 +247,21 @@ export default async function ollamaCloudExtension(pi: ExtensionAPI) {
 		description: "Refresh Ollama Cloud model list from the API",
 		async handler(_args: string, ctx: ExtensionCommandContext) {
 			ctx.ui.notify("Fetching Ollama Cloud models…", "info");
-			const fetched = await fetchOllamaModels();
+			try {
+				const fetched = await fetchOllamaModels();
 
-			if (!fetched || fetched.length === 0) {
-				ctx.ui.notify("Failed to fetch models. Keeping current list.", "warning");
-				return;
+				if (!fetched || fetched.length === 0) {
+					ctx.ui.notify("Failed to fetch models. Keeping current list.", "warning");
+					return;
+				}
+
+				pi.registerProvider(PROVIDER_ID, buildProviderConfig(fetched, envKey));
+				ctx.ui.notify(`Refreshed ${fetched.length} Ollama Cloud models.`, "info");
+			} catch (err) {
+				const msg = err instanceof Error ? err.message : String(err);
+				console.error(`[ollama-cloud] /ollama-refresh failed: ${msg}`);
+				ctx.ui.notify(`Refresh failed: ${msg}`, "error");
 			}
-
-			pi.registerProvider(PROVIDER_ID, buildProviderConfig(fetched, process.env.OLLAMA_CLOUD_API_KEY));
-			ctx.ui.notify(`Refreshed ${fetched.length} Ollama Cloud models.`, "info");
 		},
 	});
 }

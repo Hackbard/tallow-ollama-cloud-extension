@@ -4,10 +4,13 @@
 	"description": "Connect Pi / Tallow to Ollama Cloud with live model discovery and /login support",
 	"keywords": ["pi-package", "tallow", "pi", "ollama", "cloud", "provider", "extension", "login"],
 	"license": "MIT",
-	"author": "",
+	"author": "Hackbard <github.com/Hackbard>",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/Hackbard/pi-ollama-cloud.git"
+	},
+	"devDependencies": {
+		"@types/bun": "latest"
 	},
 	"pi": {
 		"extensions": ["./ollama-cloud"]
