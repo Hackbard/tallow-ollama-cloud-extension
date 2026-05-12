@@ -15,7 +15,7 @@
 	},
 	"category": "integration",
 	"tags": ["ollama", "cloud", "provider", "login"],
-	"files": ["index.ts"],
+	"files": ["index.ts", "models-cache.json", "helpers.ts"],
 	"relationships": [],
 	"npmDependencies": {}
 }
