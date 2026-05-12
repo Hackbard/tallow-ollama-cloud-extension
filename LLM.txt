@@ -9,12 +9,11 @@
 This is a **Tallow extension** (`tallow-ollama-cloud-extension`) that connects the [Tallow](https://github.com/dungle-scrubs/tallow) AI coding agent to **Ollama Cloud**.
 
 When installed, it:
-- Discovers all available Ollama Cloud models on startup
-- Refreshes the model list every 5 minutes while the session is active
-- Registers Ollama Cloud as a first-class provider in Tallow
-- Adds a `/login ollama-cloud` slash command so the user can authenticate with their API key
-- Falls back to 10 known models if the Ollama Cloud registry is unreachable
+- Ships 10 built-in Ollama Cloud models (no network required on startup)
+- Adds `/login ollama-cloud` — authenticates and auto-refreshes the model list with the new API key
+- Adds `/ollama-refresh` — manually fetches the latest models from Ollama Cloud
 - Heuristically detects vision and reasoning capabilities from model names
+- No auto-refresh, no background timers — tallow stays lightweight
 
 ---
 
@@ -76,14 +75,18 @@ cp -r extensions/ollama-cloud .tallow/extensions/
 After installation and `/reload`:
 
 ```
-# 1. The user sees Ollama Cloud models in /model
+# 1. The user picks an Ollama Cloud model
 /model
-# → Select any "ollama-cloud/..." model
+# → Select any "ollama-cloud/..." model (10 defaults available)
 
-# 2. Authenticate with Ollama Cloud
+# 2. Authenticate with Ollama Cloud (auto-refreshes models after login!)
 /login ollama-cloud
 # → Prompt appears: "Enter your Ollama Cloud API key"
 # → User pastes key from: https://ollama.com/settings/keys
+# → Model list auto-refreshes with the new key
+
+# 3. Optional: manual refresh for latest models
+/ollama-refresh
 ```
 
 No further configuration is needed.
@@ -118,16 +121,16 @@ The extension checks `OLLAMA_CLOUD_API_KEY` on startup and skips the interactive
 ```
 extensions/ollama-cloud/
 ├── extension.json    # Manifest with capabilities, permissions, category
-├── index.ts         # Entry point: registers provider, events, commands
-├── models-cache.json # Persisted model list for fast startup
+├── index.ts         # Entry point: registers provider, commands, oauth
 └── types/
     └── pi.d.ts      # Type stubs for @mariozechner/pi-coding-agent
 ```
 
 **Lifecycle:**
-1. `session_start` → load cache → if stale, fetch from Ollama Cloud → save cache
-2. Every 5 min → background refresh of model list
-3. `session_shutdown` → clear refresh interval
+1. `extension loaded` → register 10 built-in defaults (zero network)
+2. `/login ollama-cloud` → authenticate, then auto-refresh models with new key
+3. `/ollama-refresh` → manual fetch whenever user wants latest list
+4. `session_shutdown` → clean up (no timers to clear)
 
 ---
 
@@ -135,8 +138,8 @@ extensions/ollama-cloud/
 
 - **"Extension not found"**: User forgot `/reload` or the extension is not in `~/.tallow/extensions/ollama-cloud/`
 - **"No API key configured"**: Run `/login ollama-cloud` or set `OLLAMA_CLOUD_API_KEY`
-- **"Model list empty"**: Run `/ollama-refresh` manually. Check network to `https://ollama.com/v1/models` (needs < 8s timeout)
-- **"Old model list"**: The cache (`models-cache.json`) may be stale. Remove it and run `/ollama-refresh`
+- **"Model list empty/stale"**: Run `/ollama-refresh`. Uses an 8-second timeout to `https://ollama.com/v1/models`.
+- **"Old model list"**: Run `/ollama-refresh` to get the latest models.
 
 ---
 
@@ -151,7 +154,6 @@ ls ~/.tallow/extensions/ollama-cloud/extension.json
 # 2. Check tallow version
 tallow --version
 
-# 3. Clear cache and reload
-rm ~/.tallow/extensions/ollama-cloud/models-cache.json
-# Then in tallow: /reload
+# 3. Check extension details
+tallow extensions ollama-cloud
 ```

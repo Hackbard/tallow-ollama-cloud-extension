@@ -22,17 +22,13 @@ const DEFAULT_MODELS = [
 
 function guessVision(id: string): boolean {
 	const lower = id.toLowerCase();
-	for (const kw of VISION_KEYWORDS) {
-		if (lower.includes(kw)) return true;
-	}
+	for (const kw of VISION_KEYWORDS) if (lower.includes(kw)) return true;
 	return false;
 }
 
 function guessReasoning(id: string): boolean {
 	const lower = id.toLowerCase();
-	for (const kw of REASONING_KEYWORDS) {
-		if (lower.includes(kw)) return true;
-	}
+	for (const kw of REASONING_KEYWORDS) if (lower.includes(kw)) return true;
 	return false;
 }
 
@@ -44,40 +40,28 @@ function guessContextWindow(id: string): number {
 function buildModelConfig(entry: { name: string }) {
 	const id = entry.name;
 	return {
-		id,
-		name: id,
+		id, name: id,
 		api: "openai-completions",
 		reasoning: guessReasoning(id),
 		input: guessVision(id) ? ["text", "image"] : ["text"],
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 		contextWindow: guessContextWindow(id),
 		maxTokens: 16_384,
-		compat: {
-			supportsDeveloperRole: false,
-			supportsReasoningEffort: false,
-		},
+		compat: { supportsDeveloperRole: false, supportsReasoningEffort: false },
 	};
 }
 
 function buildDefaultModelConfig(m: typeof DEFAULT_MODELS[number]) {
 	return {
-		id: m.id,
-		name: m.name,
+		id: m.id, name: m.name,
 		api: "openai-completions",
 		reasoning: m.reasoning,
 		input: m.vision ? ["text", "image"] : ["text"],
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 		contextWindow: guessContextWindow(m.id),
 		maxTokens: 16_384,
-		compat: {
-			supportsDeveloperRole: false,
-			supportsReasoningEffort: false,
-		},
+		compat: { supportsDeveloperRole: false, supportsReasoningEffort: false },
 	};
-}
-
-function buildModels(models: Array<{ name: string }>) {
-	return models.map(buildModelConfig);
 }
 
 /* ------------------------------------------------------------------ */
@@ -87,13 +71,29 @@ function buildModels(models: Array<{ name: string }>) {
 export default function (pi: ExtensionAPI) {
 	const envKey = process.env.OLLAMA_CLOUD_API_KEY || undefined;
 	let registeredModelIds: string[] = [];
-	let refreshTimer: ReturnType<typeof setInterval> | null = null;
+
+	async function refreshFromApi(apiKey?: string): Promise<ReturnType<typeof buildModelConfig>[] | null> {
+		const ctrl = new AbortController();
+		const timer = setTimeout(() => ctrl.abort(), 8_000);
+		try {
+			const headers: Record<string, string> = {};
+			const key = apiKey || envKey;
+			if (key) headers["Authorization"] = `Bearer ${key}`;
+			const resp = await fetch(TAGS_URL, { headers, signal: ctrl.signal });
+			if (!resp.ok) return null;
+			const data = (await resp.json()) as any;
+			if (!data?.models || !Array.isArray(data.models)) return null;
+			return (data.models as Array<{ name: string }>).filter((e) => typeof e.name === "string").map(buildModelConfig);
+		} catch {
+			return null;
+		} finally {
+			clearTimeout(timer);
+		}
+	}
 
 	function registerModels(modelConfigs: ReturnType<typeof buildModelConfig>[]) {
 		const ids = modelConfigs.map((m) => m.id).sort();
-		const prev = registeredModelIds.join(",");
-		const next = ids.join(",");
-		if (prev === next) return;
+		if (registeredModelIds.join(",") === ids.join(",")) return;
 		registeredModelIds = ids;
 
 		pi.registerProvider(PROVIDER_ID, {
@@ -109,9 +109,16 @@ export default function (pi: ExtensionAPI) {
 						message: "Enter your Ollama Cloud API key (from https://ollama.com/settings/keys):",
 					});
 					if (!key || !key.trim()) throw new Error("API key is required");
+					const trimmed = key.trim();
+
+					// Refresh model list with the new key right after login
+					refreshFromApi(trimmed).then((models) => {
+						if (models && models.length > 0) registerModels(models);
+					});
+
 					return {
-						access: key.trim(),
-						refresh: key.trim(),
+						access: trimmed,
+						refresh: trimmed,
 						expires: Date.now() + 365 * 24 * 60 * 60 * 1000,
 					};
 				},
@@ -127,79 +134,21 @@ export default function (pi: ExtensionAPI) {
 		console.log(`[ollama-cloud] Registered ${modelConfigs.length} models`);
 	}
 
-	async function refreshFromApi(forceLog: boolean) {
-		try {
-			const ctrl = new AbortController();
-			const timer = setTimeout(() => ctrl.abort(), 8_000);
-			const headers: Record<string, string> = {};
-			if (envKey) headers["Authorization"] = `Bearer ${envKey}`;
-			const resp = await fetch(TAGS_URL, { headers, signal: ctrl.signal });
-			clearTimeout(timer);
-
-			if (!resp.ok) {
-				if (forceLog) console.warn(`[ollama-cloud] Registry returned ${resp.status}`);
-				return null;
-			}
-
-			const data = (await resp.json()) as any;
-			if (!data?.models || !Array.isArray(data.models)) {
-				if (forceLog) console.warn("[ollama-cloud] Unexpected registry response shape");
-				return null;
-			}
-
-			return buildModels(data.models as Array<{ name: string }>);
-		} catch (err) {
-			if (forceLog) console.warn(`[ollama-cloud] Failed to fetch models: ${String(err)}`);
-			return null;
-		}
-	}
-
-	// Register initial defaults, then refresh async
+	// Register defaults on startup — no network call
 	registerModels(DEFAULT_MODELS.map(buildDefaultModelConfig));
-
-	refreshFromApi(false).then((models) => {
-		if (models && models.length > 0) {
-			registerModels(models);
-		}
-	});
-
-	// Periodic refresh on session_start
-	pi.on("session_start", () => {
-		if (refreshTimer) clearInterval(refreshTimer);
-		refreshTimer = setInterval(() => {
-			refreshFromApi(false).then((models) => {
-				if (models && models.length > 0) registerModels(models);
-			});
-		}, 5 * 60 * 1000);
-		// Also refresh immediately
-		refreshFromApi(false).then((models) => {
-			if (models && models.length > 0) registerModels(models);
-		});
-	});
-
-	pi.on("session_shutdown", () => {
-		if (refreshTimer) {
-			clearInterval(refreshTimer);
-			refreshTimer = null;
-		}
-	});
 
 	// Manual refresh command
 	pi.registerCommand("ollama-refresh", {
 		description: "Refresh Ollama Cloud model list from the API",
 		async handler(_args: string, ctx: ExtensionCommandContext) {
 			ctx.ui.notify("Fetching Ollama Cloud models...", "info");
-			try {
-				const models = await refreshFromApi(true);
-				if (!models || models.length === 0) {
-					ctx.ui.notify("Failed to fetch models. Keeping current list.", "warning");
-					return;
-				}
-				registerModels(models);
-				ctx.ui.notify(`Refreshed ${models.length} Ollama Cloud models.`, "info");
-			} catch (err) {
-				ctx.ui.notify(`Refresh failed: ${String(err)}`, "error");
+			const models = await refreshFromApi();
+			if (!models || models.length === 0) {
+				ctx.ui.notify("Failed to fetch models. Keeping current list.", "warning");
+				return;
 			}
+			registerModels(models);
+			ctx.ui.notify(`Refreshed ${models.length} Ollama Cloud models.`, "info");
 		},
 	});
 }

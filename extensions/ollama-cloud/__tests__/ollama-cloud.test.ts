@@ -33,7 +33,7 @@ describe("ollamaCloudExtension", () => {
 		expect(commands).toContain("ollama-refresh");
 	});
 
-	test("registers session_start and session_shutdown handlers", async () => {
+	test("does not register session events (lightweight, no auto-refresh)", async () => {
 		const events: string[] = [];
 		const pi = {
 			on: (event: string) => events.push(event),
@@ -43,8 +43,7 @@ describe("ollamaCloudExtension", () => {
 
 		const { default: ext } = await import(`../index.js?ts=${Date.now() + 2}`);
 		ext(pi);
-		expect(events).toContain("session_start");
-		expect(events).toContain("session_shutdown");
+		expect(events).toEqual([]);
 	});
 
 	test("ollama-refresh handler notifies and calls refreshFromApi", async () => {

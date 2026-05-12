@@ -16,7 +16,9 @@
 
 *A [Tallow](https://tallow.dungle-scrubs.com) extension that registers Ollama Cloud as a first-class provider. Automatically discovers all available cloud models via the OpenAI-compatible `/v1/models` endpoint — no manual `models.json` editing required.*
 
-**Why use this?** Instead of manually maintaining a static list of Ollama Cloud models in `~/.tallow/agent/models.json`, this extension fetches the live registry on startup, keeps it fresh every 5 minutes, and adds a `/login ollama-cloud` flow so you can authenticate directly from within your agent session.
+**Why use this?** Instead of manually maintaining a static list of Ollama Cloud models in `~/.tallow/agent/models.json`, this extension ships 10 built-in defaults and adds `/login ollama-cloud` and `/ollama-refresh` for on-demand model discovery. No polling, no background timers — tallow stays lightweight.
+
+After a successful `/login ollama-cloud`, the model list is automatically refreshed with the new API key.
 
 For the Tallow project, see: [github.com/dungle-scrubs/tallow](https://github.com/dungle-scrubs/tallow)
 
@@ -123,13 +125,12 @@ Add to your project's `package.json`:
 
 | Capability | Description |
 |------------|-------------|
-| **Live model discovery** | Fetches all available Ollama Cloud models from `https://ollama.com/v1/models` on startup |
-| **Auto-refresh** | Refreshes the model list every 5 minutes while your session is active |
+| **Live model discovery** | `/ollama-refresh` fetches all available Ollama Cloud models from `https://ollama.com/v1/models` on demand |
+| **Login-triggered refresh** | After `/login ollama-cloud` succeeds, models are automatically refreshed with the new key |
 | **`/login ollama-cloud`** | Interactive OAuth login prompt. Stores your API key securely in `~/.tallow/agent/auth.json` |
-| **`/ollama-refresh`** | Manual refresh command when you want the latest models right now |
-| **Smart defaults** | Falls back to 10 known models if the registry is unreachable (no breakage) |
-| **Heuristic tagging** | Automatically detects vision-capable (`vl`, `vision`, `gemini`) and reasoning (`r1`, `thinking`, `deepseek-v4`) models |
-| **OpenAI-compatible API** | Uses `openai-completions` transport with correct Ollama compat flags |
+| **`/ollama-refresh`** | Manual refresh command when you want the latest models |
+| **Smart defaults** | Ships 10 built-in models — works immediately with zero network calls |
+| **Lightweight** | No auto-refresh, no background polling, no timers — tallow stays fast |
 
 ### Smart model heuristics
 
@@ -150,8 +151,8 @@ These are best-effort heuristics. If a model is mis-tagged, use `/model` details
 
 | Command | Description |
 |---------|-------------|
-| `/login ollama-cloud` | Prompt for your Ollama Cloud API key and store it |
-| `/ollama-refresh` | Manually re-fetch the latest model list from Ollama Cloud |
+| `/login ollama-cloud` | Prompt for your Ollama Cloud API key, store it, and auto-refresh models |
+| `/ollama-refresh` | Manually fetch the latest model list from Ollama Cloud |
 
 ---
 
