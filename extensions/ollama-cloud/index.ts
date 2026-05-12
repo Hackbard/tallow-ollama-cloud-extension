@@ -64,10 +64,6 @@ function buildDefaultModelConfig(m: typeof DEFAULT_MODELS[number]) {
 	};
 }
 
-/* ------------------------------------------------------------------ */
-/*  Extension entry                                                    */
-/* ------------------------------------------------------------------ */
-
 export default function (pi: ExtensionAPI) {
 	const envKey = process.env.OLLAMA_CLOUD_API_KEY || undefined;
 	let registeredModelIds: string[] = [];
@@ -111,7 +107,6 @@ export default function (pi: ExtensionAPI) {
 					if (!key || !key.trim()) throw new Error("API key is required");
 					const trimmed = key.trim();
 
-					// Refresh model list with the new key right after login
 					refreshFromApi(trimmed).then((models) => {
 						if (models && models.length > 0) registerModels(models);
 					});
@@ -130,14 +125,10 @@ export default function (pi: ExtensionAPI) {
 				},
 			},
 		});
-
-		console.log(`[ollama-cloud] Registered ${modelConfigs.length} models`);
 	}
 
-	// Register defaults on startup — no network call
 	registerModels(DEFAULT_MODELS.map(buildDefaultModelConfig));
 
-	// Manual refresh command
 	pi.registerCommand("ollama-refresh", {
 		description: "Refresh Ollama Cloud model list from the API",
 		async handler(_args: string, ctx: ExtensionCommandContext) {
