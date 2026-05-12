@@ -1,6 +1,7 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, beforeEach } from "bun:test";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import {
+	CACHE_FILE,
 	VISION_KEYWORDS,
 	REASONING_KEYWORDS,
 	guessInput,
@@ -8,7 +9,22 @@ import {
 	guessContextWindow,
 	buildModelConfigs,
 	buildProviderConfig,
+	loadModelCache,
+	saveModelCache,
 } from "../index.js";
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+async function clearCache() {
+	try {
+		const file = Bun.file(CACHE_FILE);
+		if (await file.exists()) {
+			await file.delete();
+		}
+	} catch { /* ignore */ }
+}
 
 /* ------------------------------------------------------------------ */
 /*  Heuristics tests                                                   */
@@ -155,11 +171,41 @@ describe("buildProviderConfig", () => {
 });
 
 /* ------------------------------------------------------------------ */
+/*  Cache tests                                                        */
+/* ------------------------------------------------------------------ */
+
+describe("model cache", () => {
+	beforeEach(async () => {
+		await clearCache();
+	});
+
+	test("save and load round-trip", async () => {
+		expect(await loadModelCache()).toBeNull();
+		await saveModelCache(DUMMY_MODELS);
+		const loaded = await loadModelCache();
+		expect(loaded).toEqual(DUMMY_MODELS);
+	});
+
+	test("returns null for missing cache", async () => {
+		expect(await loadModelCache()).toBeNull();
+	});
+
+	test("returns null for invalid cache content", async () => {
+		await Bun.write(CACHE_FILE, JSON.stringify([{ not_a_model: true }]));
+		expect(await loadModelCache()).toBeNull();
+	});
+});
+
+/* ------------------------------------------------------------------ */
 /*  Extension integration tests                                        */
 /* ------------------------------------------------------------------ */
 
 describe("ollamaCloudExtension registration", () => {
-	test("registers provider on init", async () => {
+	beforeEach(async () => {
+		await clearCache();
+	});
+
+	test("registers provider on init (fallback when no cache)", async () => {
 		const providers: string[] = [];
 		const pi = {
 			on: () => {},
@@ -167,9 +213,6 @@ describe("ollamaCloudExtension registration", () => {
 			registerCommand: () => {},
 		} as unknown as ExtensionAPI;
 
-		// We can't easily mock fetch in a dynamic import, so we check
-		// that the module loads and can be invoked.  In production,
-		// fetchOllamaModels() will hit the real registry or fall back.
 		const { default: ext } = await import("../index.js");
 		await ext(pi);
 		expect(providers).toContain("ollama-cloud");
@@ -200,5 +243,119 @@ describe("ollamaCloudExtension registration", () => {
 		await ext(pi);
 		expect(events).toContain("session_start");
 		expect(events).toContain("session_shutdown");
+	});
+
+	test("does not re-register provider when model list is unchanged", async () => {
+		await clearCache();
+
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = (async () =>
+			new Response(JSON.stringify({ models: [{ name: "llama-test" }] }), {
+				status: 200,
+				headers: { "content-type": "application/json" },
+			})) as any;
+
+		let callCount = 0;
+		const commands: Record<string, { description: string; handler: (args: string, ctx: any) => void | Promise<void> }> = {};
+		const pi = {
+			on: () => {},
+			registerProvider: () => {
+				callCount++;
+			},
+			registerCommand: (name: string, options: { description: string; handler: (args: string, ctx: any) => void | Promise<void> }) => {
+				commands[name] = options;
+			},
+		} as unknown as ExtensionAPI;
+
+		try {
+			// Cache is empty → fallback defaults registered first, then live models from mock.
+			const { default: ext } = await import(`../index.js?ts=${Date.now()}`);
+			await ext(pi);
+			expect(callCount).toBe(2);
+
+			const handler = commands["ollama-refresh"]?.handler;
+			expect(handler).toBeDefined();
+			await handler!("", { ui: { notify: () => {} } });
+
+			// Same model list returned by mock fetch — should NOT trigger another registerProvider
+			expect(callCount).toBe(2);
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test("re-registers provider when model list changes", async () => {
+		await clearCache();
+
+		const originalFetch = globalThis.fetch;
+		let fetchCount = 0;
+		globalThis.fetch = ((async () => {
+			fetchCount++;
+			const models = fetchCount === 1
+				? [{ name: "model-a" }]
+				: [{ name: "model-a" }, { name: "model-b" }];
+			return new Response(JSON.stringify({ models }), {
+				status: 200,
+				headers: { "content-type": "application/json" },
+			});
+		}) as any);
+
+		let callCount = 0;
+		const commands: Record<string, { description: string; handler: (args: string, ctx: any) => void | Promise<void> }> = {};
+		const pi = {
+			on: () => {},
+			registerProvider: () => {
+				callCount++;
+			},
+			registerCommand: (name: string, options: { description: string; handler: (args: string, ctx: any) => void | Promise<void> }) => {
+				commands[name] = options;
+			},
+		} as unknown as ExtensionAPI;
+
+		try {
+			const { default: ext } = await import(`../index.js?ts=${Date.now() + 1}`);
+			await ext(pi);
+			// 1x fallback models + 1x live models from mock (different list)
+			expect(callCount).toBe(2);
+
+			const handler = commands["ollama-refresh"]?.handler;
+			await handler!("", { ui: { notify: () => {} } });
+
+			// Live model list changed (model-b added) — should trigger another registerProvider
+			expect(callCount).toBe(3);
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test("loads from cache before falling back to defaults", async () => {
+		await clearCache();
+		await saveModelCache(DUMMY_MODELS);
+
+		// Mock fetch so no live refresh overwrites the cache result.
+		const originalFetch = globalThis.fetch;		globalThis.fetch = (async () =>
+			new Response(JSON.stringify({ models: [] }), {
+				status: 200,
+				headers: { "content-type": "application/json" },
+			})) as any;
+
+		let providerModelsCount = 0;
+		const pi = {
+			on: () => {},
+			registerProvider: (_id: string, config: any) => {
+				providerModelsCount = config.models?.length ?? 0;
+			},
+			registerCommand: () => {},
+		} as unknown as ExtensionAPI;
+
+		try {
+			const { default: ext } = await import(`../index.js?ts=${Date.now() + 2}`);
+			await ext(pi);
+			// Should have used the cached 3 models, and since live fetch returns empty,
+			// it should stay at 3.
+			expect(providerModelsCount).toBe(3);
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
 	});
 });

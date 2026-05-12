@@ -1,18 +1,19 @@
 {
 	"name": "ollama-cloud",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Ollama Cloud provider with /login support and dynamic model selection",
 	"whenToUse": "Use when you want to connect tallow to Ollama Cloud (https://ollama.com/cloud) via API key.",
 	"capabilities": {
-		"events": ["session_start", "session_shutdown"]
+		"events": ["session_start", "session_shutdown"],
+		"commands": ["ollama-refresh"]
 	},
 	"permissionSurface": {
-		"filesystem": "none",
+		"filesystem": "write",
 		"shell": false,
 		"network": true,
 		"subprocess": false
 	},
-	"category": "provider",
+	"category": "integration",
 	"tags": ["ollama", "cloud", "provider", "login"],
 	"files": ["index.ts"],
 	"relationships": [],

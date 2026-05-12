@@ -1,21 +1,22 @@
 <div align="center">
 
-# 🦙 pi-ollama-cloud
+# 🦙 tallow-ollama-cloud-extension
 
-**Connect [Pi](https://pi.dev) / [Tallow](https://tallow.dungle-scrubs.com) to Ollama Cloud with live model discovery**
+**Connect [Tallow](https://tallow.dungle-scrubs.com) to Ollama Cloud with live model discovery**
 
-[![CI](https://github.com/Hackbard/pi-ollama-cloud/actions/workflows/ci.yml/badge.svg)](https://github.com/Hackbard/pi-ollama-cloud/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-22%20passing-brightgreen?logo=bun)](https://github.com/Hackbard/pi-ollama-cloud/tree/main/ollama-cloud/__tests__)
-[![Version](https://img.shields.io/badge/version-v0.1.0-blue)](https://github.com/Hackbard/pi-ollama-cloud/releases)
+[![CI](https://github.com/Hackbard/tallow-ollama-cloud-extension/actions/workflows/ci.yml/badge.svg)](https://github.com/Hackbard/tallow-ollama-cloud-extension/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen?logo=bun)](https://github.com/Hackbard/tallow-ollama-cloud-extension/tree/main/extensions/ollama-cloud/__tests__)
+[![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FHackbard%2Ftallow-ollama-cloud-extension%2Fmain%2Fbadges%2Fcoverage-badge.json)](https://github.com/Hackbard/tallow-ollama-cloud-extension/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/badge/version-v0.1.1-blue)](https://github.com/Hackbard/tallow-ollama-cloud-extension/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 </div>
 
 ---
 
-*An extension for [pi](https://pi.dev) / [tallow](https://tallow.dungle-scrubs.com) that registers Ollama Cloud as a first-class provider. Automatically discovers all available cloud models via the OpenAI-compatible `/v1/models` endpoint — no manual `models.json` editing required.*
+*A Tallow extension that registers Ollama Cloud as a first-class provider. Automatically discovers all available cloud models via the OpenAI-compatible `/v1/models` endpoint — no manual `models.json` editing required.*
 
-**Why use this?** Instead of manually maintaining a static list of Ollama Cloud models in `~/.pi/agent/models.json`, this extension fetches the live registry on startup, keeps it fresh every 5 minutes, and adds a `/login ollama-cloud` flow so you can authenticate directly from within your agent session.
+**Why use this?** Instead of manually maintaining a static list of Ollama Cloud models in `~/.tallow/agent/models.json`, this extension fetches the live registry on startup, keeps it fresh every 5 minutes, and adds a `/login ollama-cloud` flow so you can authenticate directly from within your agent session.
 
 ---
 
@@ -37,9 +38,9 @@
 
 ```bash
 # 1. Install the extension
-pi install git:github.com/Hackbard/pi-ollama-cloud
+tallow install git:github.com/Hackbard/tallow-ollama-cloud-extension
 
-# 2. Start tallow / pi
+# 2. Start tallow
 tallow
 
 # 3. Pick an Ollama Cloud model
@@ -57,36 +58,31 @@ That's it. The model list stays in sync with Ollama Cloud automatically.
 
 ## Installation
 
-### Option A: Via `pi install` (Recommended)
+### Option A: Via `tallow install` (Recommended)
 
 ```bash
-pi install git:github.com/Hackbard/pi-ollama-cloud
+tallow install git:github.com/Hackbard/tallow-ollama-cloud-extension
 ```
 
-Then `/reload` or restart your pi/tallow session.
+Then `/reload` or restart your tallow session.
 
 ### Option B: Manual Drop-in
 
 ```bash
-# For pi
-git clone https://github.com/Hackbard/pi-ollama-cloud.git
-cp -r pi-ollama-cloud/ollama-cloud ~/.pi/agent/extensions/
-
-# For tallow
-git clone https://github.com/Hackbard/pi-ollama-cloud.git
-cp -r pi-ollama-cloud/ollama-cloud ~/.tallow/extensions/
+git clone https://github.com/Hackbard/tallow-ollama-cloud-extension.git
+cp -r tallow-ollama-cloud-extension/extensions/ollama-cloud ~/.tallow/extensions/
 ```
 
 Then `/reload` or restart.
 
-### Option C: As a Pi Package
+### Option C: As a Package Dependency
 
 Add a dependency to your project's `package.json` if you bundle extensions:
 
 ```json
 {
   "pi": {
-    "extensions": ["./node_modules/pi-ollama-cloud/ollama-cloud"]
+    "extensions": ["./node_modules/tallow-ollama-cloud-extension/extensions/ollama-cloud"]
   }
 }
 ```
@@ -99,7 +95,7 @@ Add a dependency to your project's `package.json` if you bundle extensions:
 |------------|-------------|
 | **Live model discovery** | Fetches all available Ollama Cloud models from `https://ollama.com/v1/models` on startup |
 | **Auto-refresh** | Refreshes the model list every 5 minutes while your session is active |
-| **`/login ollama-cloud`** | Interactive OAuth login prompt. Stores your API key securely in `~/.pi/agent/auth.json` |
+| **`/login ollama-cloud`** | Interactive OAuth login prompt. Stores your API key securely in `~/.tallow/agent/auth.json` |
 | **`/ollama-refresh`** | Manual refresh command when you want the latest models right now |
 | **Smart defaults** | Falls back to 10 known models if the registry is unreachable (no breakage) |
 | **Heuristic tagging** | Automatically detects vision-capable (`vl`, `vision`, `gemini`) and reasoning (`r1`, `thinking`, `deepseek-v4`) models |
@@ -144,7 +140,7 @@ When this variable is present, the extension uses it directly and still refreshe
 
 ### Per-project override
 
-If you need to pin a specific Ollama Cloud model in a project, add this to `.pi/settings.json` or `.tallow/settings.json`:
+If you need to pin a specific Ollama Cloud model in a project, add this to `.tallow/settings.json`:
 
 ```json
 {
@@ -161,7 +157,7 @@ If you need to pin a specific Ollama Cloud model in a project, add this to `.pi/
 A: The model registry at `https://ollama.com/v1/models` is public — no API key is needed to discover models. You only need a key for the actual chat completions (`POST /v1/chat/completions`).
 
 **Q: Where is my API key stored?**  
-A: It is stored in `~/.pi/agent/auth.json` (or `~/.tallow/auth.json`) by pi/tallow's built-in OAuth credential manager. The extension never writes keys to its own files.
+A: It is stored in `~/.tallow/agent/auth.json` by Tallow's built-in OAuth credential manager. The extension never writes keys to its own files.
 
 **Q: Do I need to run `/ollama-refresh` manually?**  
 A: No. The extension refreshes automatically every 5 minutes and on every `session_start`. The command exists only if you want an immediate refresh (e.g., after a new model announcement).
@@ -170,7 +166,7 @@ A: No. The extension refreshes automatically every 5 minutes and on every `sessi
 A: The extension falls back to a built-in list of 10 known models. Your session keeps working.
 
 **Q: Can I use this with local Ollama instead?**  
-A: No — this extension is specifically for Ollama Cloud (`ollama.com`). For local Ollama (`localhost:11434`), add a static provider block to `~/.pi/agent/models.json` instead:
+A: No — this extension is specifically for Ollama Cloud (`ollama.com`). For local Ollama (`localhost:11434`), add a static provider block to `~/.tallow/agent/models.json` instead:
 
 ```json
 {
@@ -187,9 +183,6 @@ A: No — this extension is specifically for Ollama Cloud (`ollama.com`). For lo
 
 **Q: A new model is not showing the right capabilities. How do I fix it?**  
 A: Open an issue with the model ID. The heuristics are regex-based and may need an update for new naming conventions.
-
-**Q: Does this work with plain `pi` or only `tallow`?**  
-A: Both. The extension targets the `@mariozechner/pi-coding-agent` extension API, which is shared between pi and tallow.
 
 ---
 
@@ -221,7 +214,7 @@ If that fails, check your network connection to `https://ollama.com/v1/models`. 
 
 ### Extension does not appear after install
 
-Ensure you ran `/reload` or restarted pi/tallow. Extensions are discovered at startup.
+Ensure you ran `/reload` or restarted Tallow. Extensions are discovered at startup.
 
 ---
 
@@ -229,7 +222,7 @@ Ensure you ran `/reload` or restarted pi/tallow. Extensions are discovered at st
 
 PRs welcome! Before opening a PR:
 
-1. Test the extension locally by dropping it into `~/.pi/agent/extensions/ollama-cloud/` or `~/.tallow/extensions/ollama-cloud/`.
+1. Test the extension locally by dropping it into `~/.tallow/extensions/ollama-cloud/`.
 2. Run `/reload` and verify `/model` lists Ollama Cloud models.
 3. Check that `/login ollama-cloud` stores credentials and that chat completions work.
 
