@@ -22,6 +22,7 @@
 		"typecheck": "bun run tsc --noEmit"
 	},
 	"devDependencies": {
-		"@types/bun": "latest"
+		"@types/bun": "latest",
+		"typescript": "^6.0.3"
 	}
 }
