@@ -1,0 +1,134 @@
+# LLM-optimized Extension Guide
+
+> This file is designed for LLM consumption. Feed this to your AI agent when you want it to install or explain the tallow-ollama-cloud-extension.
+
+---
+
+## What this extension does
+
+This is a **Tallow extension** (`tallow-ollama-cloud-extension`) that connects the [Tallow](https://github.com/dungle-scrubs/tallow) AI coding agent to **Ollama Cloud**.
+
+When installed, it:
+- Discovers all available Ollama Cloud models on startup
+- Refreshes the model list every 5 minutes while the session is active
+- Registers Ollama Cloud as a first-class provider in Tallow
+- Adds a `/login ollama-cloud` slash command so the user can authenticate with their API key
+- Falls back to 10 known models if the Ollama Cloud registry is unreachable
+- Heuristically detects vision and reasoning capabilities from model names
+
+---
+
+## Prerequisites
+
+The user must have:
+1. **Tallow** installed: https://tallow.dungle-scrubs.com (source: https://github.com/dungle-scrubs/tallow)
+2. An **Ollama Cloud API key**: https://ollama.com/settings/keys
+
+---
+
+## Installation Steps
+
+Tell the user to run:
+
+```bash
+# Install the extension via tallow CLI
+tallow install git:github.com/Hackbard/tallow-ollama-cloud-extension
+
+# Reload tallow to discover the new extension
+/reload
+```
+
+Or manually:
+
+```bash
+git clone https://github.com/Hackbard/tallow-ollama-cloud-extension.git
+cp -r tallow-ollama-cloud-extension/extensions/ollama-cloud ~/.tallow/extensions/
+# Then restart tallow or run /reload
+```
+
+---
+
+## Post-Install: Activation
+
+After installation and `/reload`:
+
+```
+# 1. The user sees Ollama Cloud models in /model
+/model
+# → Select any "ollama-cloud/..." model
+
+# 2. Authenticate with Ollama Cloud
+/login ollama-cloud
+# → Prompt appears: "Enter your Ollama Cloud API key"
+# → User pastes key from: https://ollama.com/settings/keys
+```
+
+No further configuration is needed.
+
+---
+
+## Key API endpoints used
+
+| Endpoint | Purpose |
+|----------|---------|
+| `https://ollama.com/v1/models` | Public model registry (no auth) |
+| `https://ollama.com/api/tags` | Model tags/tags list |
+| `https://ollama.com/v1` (POST) | OpenAI-compatible chat completions (needs API key) |
+
+---
+
+## Environment variable override
+
+If the user prefers not to use `/login`:
+
+```bash
+export OLLAMA_CLOUD_API_KEY="sk-..."
+tallow
+```
+
+The extension checks `OLLAMA_CLOUD_API_KEY` on startup and skips the interactive prompt.
+
+---
+
+## Extension Architecture (for debugging)
+
+```
+extensions/ollama-cloud/
+├── extension.json    # Manifest with capabilities, permissions, category
+├── index.ts         # Entry point: registers provider, events, commands
+├── models-cache.json # Persisted model list for fast startup
+└── types/
+    └── pi.d.ts      # Type stubs for @mariozechner/pi-coding-agent
+```
+
+**Lifecycle:**
+1. `session_start` → load cache → if stale, fetch from Ollama Cloud → save cache
+2. Every 5 min → background refresh of model list
+3. `session_shutdown` → clear refresh interval
+
+---
+
+## Troubleshooting tips for LLMs
+
+- **"Extension not found"**: User forgot `/reload` or the extension is not in `~/.tallow/extensions/ollama-cloud/`
+- **"No API key configured"**: Run `/login ollama-cloud` or set `OLLAMA_CLOUD_API_KEY`
+- **"Model list empty"**: Run `/ollama-refresh` manually. Check network to `https://ollama.com/v1/models` (needs < 8s timeout)
+- **"Old model list"**: The cache (`models-cache.json`) may be stale. Remove it and run `/ollama-refresh`
+
+---
+
+## Minimal reproduction instructions
+
+If a user reports a bug, ask them to:
+
+```bash
+# 1. Check extension is present
+ls ~/.tallow/extensions/ollama-cloud/extension.json
+
+# 2. Check tallow version
+tallow --version
+
+# 3. Clear cache and reload
+rm ~/.tallow/extensions/ollama-cloud/models-cache.json
+# Then in tallow: /reload
+```

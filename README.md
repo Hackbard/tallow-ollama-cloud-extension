@@ -14,9 +14,11 @@
 
 ---
 
-*A Tallow extension that registers Ollama Cloud as a first-class provider. Automatically discovers all available cloud models via the OpenAI-compatible `/v1/models` endpoint — no manual `models.json` editing required.*
+*A [Tallow](https://tallow.dungle-scrubs.com) extension that registers Ollama Cloud as a first-class provider. Automatically discovers all available cloud models via the OpenAI-compatible `/v1/models` endpoint — no manual `models.json` editing required.*
 
 **Why use this?** Instead of manually maintaining a static list of Ollama Cloud models in `~/.tallow/agent/models.json`, this extension fetches the live registry on startup, keeps it fresh every 5 minutes, and adds a `/login ollama-cloud` flow so you can authenticate directly from within your agent session.
+
+For the Tallow project, see: [github.com/dungle-scrubs/tallow](https://github.com/dungle-scrubs/tallow)
 
 ---
 
