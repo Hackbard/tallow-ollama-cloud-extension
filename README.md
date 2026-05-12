@@ -20,11 +20,16 @@
 
 For the Tallow project, see: [github.com/dungle-scrubs/tallow](https://github.com/dungle-scrubs/tallow)
 
+Official documentation:
+- [Extensions Overview](https://tallow.dungle-scrubs.com/extensions/overview/)
+- [Creating Extensions](https://tallow.dungle-scrubs.com/development/creating-extensions/)
+
 ---
 
 ## Table of Contents
 
 - [Quick Start](#quick-start)
+- [How Extensions Load](#how-extensions-load)
 - [Installation](#installation)
 - [What You Get](#what-you-get)
 - [Commands](#commands)
@@ -61,11 +66,21 @@ That's it. The model list stays in sync with Ollama Cloud automatically.
 
 ## How Extensions Load
 
-Tallow discovers extensions from three locations in order:
+Tallow discovers extensions from three locations in order ([docs](https://tallow.dungle-scrubs.com/extensions/overview/#how-extensions-are-loaded)):
 
-1. **Bundled** — shipped in the tallow package's `extensions/` directory (loaded automatically)
+1. **Bundled** — shipped in tallow's `extensions/` directory (loaded automatically)
 2. **User global** — `~/.tallow/extensions/` (available in all sessions)
 3. **Project local** — `.tallow/extensions/` (scoped to a single project)
+
+If a user extension has the same name as a bundled one, the user version overrides it.
+
+### Inspect installed extensions
+
+```bash
+tallow extensions              # table view of all extensions
+tallow extensions --json       # machine-readable catalog
+tallow extensions ollama-cloud # detail view for this extension
+```
 
 ---
 

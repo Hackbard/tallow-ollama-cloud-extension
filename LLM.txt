@@ -26,13 +26,29 @@ The user must have:
 
 ---
 
+## Official Tallow Docs
+
+- [Extensions Overview](https://tallow.dungle-scrubs.com/extensions/overview/)
+- [Creating Extensions](https://tallow.dungle-scrubs.com/development/creating-extensions/)
+- [Tallow GitHub](https://github.com/dungle-scrubs/tallow)
+
+---
+
 ## How Extensions Load
 
-Tallow discovers extensions from three locations in order:
+Tallow discovers extensions from three locations in order ([docs](https://tallow.dungle-scrubs.com/extensions/overview/#how-extensions-are-loaded)):
 
 1. **Bundled** — `extensions/` in the tallow package (loaded automatically)
 2. **User global** — `~/.tallow/extensions/` (available in all sessions)
 3. **Project local** — `.tallow/extensions/` (scoped to a single project)
+
+### CLI catalog commands
+
+```bash
+tallow extensions              # table view
+tallow extensions --json       # machine-readable catalog
+tallow extensions ollama-cloud # detail view for this extension
+```
 
 ---
 
