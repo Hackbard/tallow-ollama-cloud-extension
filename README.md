@@ -39,51 +39,64 @@ For the Tallow project, see: [github.com/dungle-scrubs/tallow](https://github.co
 ## Quick Start
 
 ```bash
-# 1. Install the extension
-tallow install git:github.com/Hackbard/tallow-ollama-cloud-extension
+# 1. Install the extension into ~/.tallow/extensions/
+git clone https://github.com/Hackbard/tallow-ollama-cloud-extension.git
+cp -r tallow-ollama-cloud-extension/extensions/ollama-cloud ~/.tallow/extensions/
 
 # 2. Start tallow
 tallow
 
-# 3. Pick an Ollama Cloud model
-/model
-# → Select any ollama-cloud/... model
-
-# 4. Log in with your API key
+# 3. Log in with your API key (do this first!)
 /login ollama-cloud
 # → Paste your key from https://ollama.com/settings/keys
+
+# 4. Pick an Ollama Cloud model
+/model
+# → Select any ollama-cloud/... model
 ```
 
 That's it. The model list stays in sync with Ollama Cloud automatically.
 
 ---
 
+## How Extensions Load
+
+Tallow discovers extensions from three locations in order:
+
+1. **Bundled** — shipped in the tallow package's `extensions/` directory (loaded automatically)
+2. **User global** — `~/.tallow/extensions/` (available in all sessions)
+3. **Project local** — `.tallow/extensions/` (scoped to a single project)
+
+---
+
 ## Installation
 
-### Option A: Via `tallow install` (Recommended)
-
-```bash
-tallow install git:github.com/Hackbard/tallow-ollama-cloud-extension
-```
-
-Then `/reload` or restart your tallow session.
-
-### Option B: Manual Drop-in
+### User Global (Recommended)
 
 ```bash
 git clone https://github.com/Hackbard/tallow-ollama-cloud-extension.git
 cp -r tallow-ollama-cloud-extension/extensions/ollama-cloud ~/.tallow/extensions/
 ```
 
-Then `/reload` or restart.
+Then `/reload` or restart tallow. The extension becomes available in all sessions.
 
-### Option C: As a Package Dependency
+### Project Local
 
-Add a dependency to your project's `package.json` if you bundle extensions:
+Drop the extension into your project:
+
+```bash
+cp -r tallow-ollama-cloud-extension/extensions/ollama-cloud .tallow/extensions/
+```
+
+Then `/reload`. Only active when tallow runs in this project.
+
+### As an npm Dependency
+
+Add to your project's `package.json`:
 
 ```json
 {
-  "pi": {
+  "tallow": {
     "extensions": ["./node_modules/tallow-ollama-cloud-extension/extensions/ollama-cloud"]
   }
 }

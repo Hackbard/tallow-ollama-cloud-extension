@@ -26,23 +26,30 @@ The user must have:
 
 ---
 
+## How Extensions Load
+
+Tallow discovers extensions from three locations in order:
+
+1. **Bundled** — `extensions/` in the tallow package (loaded automatically)
+2. **User global** — `~/.tallow/extensions/` (available in all sessions)
+3. **Project local** — `.tallow/extensions/` (scoped to a single project)
+
+---
+
 ## Installation Steps
 
-Tell the user to run:
-
-```bash
-# Install the extension via tallow CLI
-tallow install git:github.com/Hackbard/tallow-ollama-cloud-extension
-
-# Reload tallow to discover the new extension
-/reload
-```
-
-Or manually:
+### Global (Recommended)
 
 ```bash
 git clone https://github.com/Hackbard/tallow-ollama-cloud-extension.git
 cp -r tallow-ollama-cloud-extension/extensions/ollama-cloud ~/.tallow/extensions/
+# Then restart tallow or run /reload
+```
+
+### Project-local
+
+```bash
+cp -r extensions/ollama-cloud .tallow/extensions/
 # Then restart tallow or run /reload
 ```
 
