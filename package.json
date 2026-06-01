@@ -1,25 +1,32 @@
 {
 	"name": "tallow-ollama-cloud-extension",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "Tallow extension for Ollama Cloud with live model discovery and /login support",
-	"keywords": ["tallow", "tallow-extension", "ollama", "cloud", "provider", "extension", "login"],
+	"keywords": [
+		"tallow",
+		"tallow-extension",
+		"ollama",
+		"cloud",
+		"provider",
+		"extension",
+		"login"
+	],
 	"license": "MIT",
 	"author": "Hackbard <github.com/Hackbard>",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/Hackbard/tallow-ollama-cloud-extension.git"
+	"repository": "github:Hackbard/tallow-ollama-cloud-extension",
+	"bin": {
+		"tallow-ollama-cloud-extension": "./install.sh"
 	},
 	"files": [
 		"extensions/",
+		"install.sh",
 		"README.md",
 		"LICENSE"
 	],
-	"pi": {
-		"extensions": ["./extensions/ollama-cloud"]
-	},
 	"scripts": {
 		"test": "bun test",
-		"typecheck": "bun run tsc --noEmit"
+		"typecheck": "bun run tsc --noEmit",
+		"prepublishOnly": "bun run typecheck && bun test"
 	},
 	"devDependencies": {
 		"@types/bun": "latest",

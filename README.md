@@ -88,35 +88,37 @@ tallow extensions ollama-cloud # detail view for this extension
 
 ## Installation
 
-### User Global (Recommended)
+### One-liner (Recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Hackbard/tallow-ollama-cloud-extension/main/install.sh | bash
+```
+
+Or install into a specific project:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Hackbard/tallow-ollama-cloud-extension/main/install.sh | bash -s /path/to/project
+```
+
+### npm
+
+```bash
+npm install -g tallow-ollama-cloud-extension
+tallow-ollama-cloud-extension
+```
+
+Or project-local:
+
+```bash
+npm install tallow-ollama-cloud-extension
+npx tallow-ollama-cloud-extension .
+```
+
+### Manual
 
 ```bash
 git clone https://github.com/Hackbard/tallow-ollama-cloud-extension.git
-cp -r tallow-ollama-cloud-extension/extensions/ollama-cloud ~/.tallow/extensions/
-```
-
-Then `/reload` or restart tallow. The extension becomes available in all sessions.
-
-### Project Local
-
-Drop the extension into your project:
-
-```bash
-cp -r tallow-ollama-cloud-extension/extensions/ollama-cloud .tallow/extensions/
-```
-
-Then `/reload`. Only active when tallow runs in this project.
-
-### As an npm Dependency
-
-Add to your project's `package.json`:
-
-```json
-{
-  "tallow": {
-    "extensions": ["./node_modules/tallow-ollama-cloud-extension/extensions/ollama-cloud"]
-  }
-}
+./tallow-ollama-cloud-extension/install.sh
 ```
 
 ---

@@ -53,19 +53,25 @@ tallow extensions ollama-cloud # detail view for this extension
 
 ## Installation Steps
 
-### Global (Recommended)
+### One-liner (Recommended)
 
 ```bash
-git clone https://github.com/Hackbard/tallow-ollama-cloud-extension.git
-cp -r tallow-ollama-cloud-extension/extensions/ollama-cloud ~/.tallow/extensions/
-# Then restart tallow or run /reload
+curl -fsSL https://raw.githubusercontent.com/Hackbard/tallow-ollama-cloud-extension/main/install.sh | bash
+```
+
+### npm
+
+```bash
+npm install -g tallow-ollama-cloud-extension
+tallow-ollama-cloud-extension
 ```
 
 ### Project-local
 
 ```bash
-cp -r extensions/ollama-cloud .tallow/extensions/
-# Then restart tallow or run /reload
+curl -fsSL https://raw.githubusercontent.com/Hackbard/tallow-ollama-cloud-extension/main/install.sh | bash -s ./path/to/project
+# or
+npx tallow-ollama-cloud-extension ./path/to/project
 ```
 
 ---
