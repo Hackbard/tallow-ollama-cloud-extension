@@ -5,56 +5,88 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
+  typecheck:
+    name: Typecheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        # Reads tsconfig.json (no file args → no TS5112)
+        run: bunx tsc --noEmit
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
       - name: Run tests
         run: bun test extensions/ollama-cloud/__tests__/ollama-cloud.test.ts
 
-  typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      - name: Typecheck
-        run: bunx tsc --noEmit extensions/ollama-cloud/index.ts
-
   coverage:
+    name: Coverage badge
     runs-on: ubuntu-latest
+    # Only produce a badge for pushes to main; PRs just run the test.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
       - name: Run tests with coverage
         run: |
           bun test --coverage extensions/ollama-cloud/__tests__/ollama-cloud.test.ts 2>&1 | tee coverage.txt
+
       - name: Extract coverage percentage
         id: extract
         run: |
-          COVERAGE=$(grep -oP '\d+\.?\d*%' coverage.txt | tail -1 | sed 's/%//')
-          if [ -z "$COVERAGE" ]; then COVERAGE="0"; fi
-          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
-          echo "Extracted coverage: $COVERAGE%"
-      - name: Generate coverage badge JSON
+          # Bun coverage table: "All files | XX.XX | YY.YY |" — last numeric on that line = line coverage (%)
+          COVERAGE=$(awk '/All files/ { for (i=1;i<=NF;i++) if ($i ~ /^[0-9]+(\.[0-9]+)?$/) last=$i } END { print (last==""?"0":last) }' coverage.txt)
+          echo "coverage=${COVERAGE}" >> "$GITHUB_OUTPUT"
+          echo "Extracted coverage: ${COVERAGE}%"
+
+      - name: Generate coverage badge
+        env:
+          COV: ${{ steps.extract.outputs.coverage }}
         run: |
           mkdir -p badges
-          COV="${{ steps.extract.outputs.coverage }}"
-          COLOR="red"
-          if (( $(echo "$COV >= 80" | bc -l) )); then COLOR="brightgreen"; fi
-          if (( $(echo "$COV >= 60" | bc -l) )) && (( $(echo "$COV < 80" | bc -l) )); then COLOR="yellow"; fi
-          if (( $(echo "$COV >= 40" | bc -l) )) && (( $(echo "$COV < 60" | bc -l) )); then COLOR="orange"; fi
-          if (( $(echo "$COV >= 20" | bc -l) )) && (( $(echo "$COV < 40" | bc -l) )); then COLOR="red"; fi
+          # awk-based color selection (no bc dependency)
+          COLOR=$(awk -v c="$COV" 'BEGIN {
+            if (c+0 >= 80)      print "brightgreen";
+            else if (c+0 >= 60) print "yellow";
+            else if (c+0 >= 40) print "orange";
+            else if (c+0 >= 20) print "red";
+            else                print "red";
+          }')
           cat > badges/coverage-badge.json <<EOF
           {
             "schemaVersion": 1,
@@ -64,9 +96,16 @@ jobs:
             "namedLogo": "bun"
           }
           EOF
+          echo "Badge generated with color: $COLOR"
+
       - name: Commit coverage badge
-        uses: stefanzweifel/git-auto-commit-action@v5
-        if: github.ref == 'refs/heads/main'
-        with:
-          commit_message: "chore: update coverage badge"
-          file_pattern: "badges/coverage-badge.json"
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add badges/coverage-badge.json
+          if git diff --cached --quiet; then
+            echo "No coverage changes to commit."
+          else
+            git commit -m "chore: update coverage badge"
+            git push
+          fi
