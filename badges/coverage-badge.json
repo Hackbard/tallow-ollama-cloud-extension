@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "label": "coverage",
-  "message": "59.66%",
-  "color": "orange",
+  "message": "6.85%",
+  "color": "red",
   "namedLogo": "bun"
 }
