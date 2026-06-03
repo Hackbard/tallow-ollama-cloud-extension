@@ -131,7 +131,15 @@ export default function (pi: ExtensionAPI) {
 		pi.registerProvider(PROVIDER_ID, providerConfig);
 	}
 
-	registerModels(DEFAULT_MODELS.map(buildDefaultModelConfig));
+	// BOOT: try to fetch live model list first (no auth needed for tags endpoint),
+	// then fall back to static defaults if the API is unreachable.
+	refreshFromApi().then((models) => {
+		if (models && models.length > 0) {
+			registerModels(models);
+		} else {
+			registerModels(DEFAULT_MODELS.map(buildDefaultModelConfig));
+		}
+	});
 
 	pi.registerCommand("ollama-refresh", {
 		description: "Refresh Ollama Cloud model list from the API",
