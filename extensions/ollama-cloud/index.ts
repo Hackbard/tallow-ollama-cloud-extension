@@ -1,8 +1,12 @@
 import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const PROVIDER_ID = "ollama-cloud";
 const BASE_URL = "https://ollama.com/v1";
 const TAGS_URL = "https://ollama.com/api/tags";
+const CACHE_PATH = join(dirname(fileURLToPath(import.meta.url)), "models-cache.json");
 
 const VISION_KEYWORDS = ["vl", "vision", "llava", "moondream", "qwen2.5-vl", "qwen3-vl", "gemini"];
 const REASONING_KEYWORDS = ["r1", "thinking", "cogito", "deepseek-v4", "qwq", "o1", "o3"];
@@ -65,6 +69,26 @@ function buildDefaultModelConfig(m: typeof DEFAULT_MODELS[number]) {
 	};
 }
 
+function loadCache(): ReturnType<typeof buildModelConfig>[] | null {
+	if (!existsSync(CACHE_PATH)) return null;
+	try {
+		const raw = readFileSync(CACHE_PATH, "utf-8");
+		const data = JSON.parse(raw);
+		if (Array.isArray(data) && data.length > 0) return data;
+		return null;
+	} catch {
+		return null;
+	}
+}
+
+function saveCache(models: ReturnType<typeof buildModelConfig>[]) {
+	try {
+		writeFileSync(CACHE_PATH, JSON.stringify(models, null, 2) + "\n", "utf-8");
+	} catch {
+		// ignore write errors
+	}
+}
+
 export default function (pi: ExtensionAPI) {
 	const envKey = process.env.OLLAMA_CLOUD_API_KEY || undefined;
 	let registeredModelIds: string[] = [];
@@ -108,7 +132,10 @@ export default function (pi: ExtensionAPI) {
 					const trimmed = key.trim();
 
 					refreshFromApi(trimmed).then((models) => {
-						if (models && models.length > 0) registerModels(models);
+						if (models && models.length > 0) {
+							registerModels(models);
+							saveCache(models);
+						}
 					});
 
 					return {
@@ -131,13 +158,19 @@ export default function (pi: ExtensionAPI) {
 		pi.registerProvider(PROVIDER_ID, providerConfig);
 	}
 
-	// BOOT: try to fetch live model list first (no auth needed for tags endpoint),
-	// then fall back to static defaults if the API is unreachable.
+	// BOOT: load cached models (fast, synchronous) so findInitialModel sees them immediately.
+	const cached = loadCache();
+	if (cached) {
+		registerModels(cached);
+	} else {
+		registerModels(DEFAULT_MODELS.map(buildDefaultModelConfig));
+	}
+
+	// BACKGROUND: silently refresh from API and update cache for next boot.
 	refreshFromApi().then((models) => {
 		if (models && models.length > 0) {
 			registerModels(models);
-		} else {
-			registerModels(DEFAULT_MODELS.map(buildDefaultModelConfig));
+			saveCache(models);
 		}
 	});
 
@@ -151,6 +184,7 @@ export default function (pi: ExtensionAPI) {
 				return;
 			}
 			registerModels(models);
+			saveCache(models);
 			ctx.ui.notify(`Refreshed ${models.length} Ollama Cloud models.`, "info");
 		},
 	});
