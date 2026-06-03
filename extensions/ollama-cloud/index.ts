@@ -12,6 +12,7 @@ const DEFAULT_MODELS = [
 	{ id: "qwen3.5:397b", name: "Qwen 3.5", reasoning: false, vision: false },
 	{ id: "gemma4:31b", name: "Gemma 4", reasoning: false, vision: false },
 	{ id: "kimi-k2.5", name: "Kimi K2.5", reasoning: false, vision: false },
+	{ id: "kimi-k2.6", name: "Kimi K2.6", reasoning: false, vision: false },
 	{ id: "deepseek-v4-pro", name: "DeepSeek V4 Pro", reasoning: true, vision: false },
 	{ id: "gemini-3-flash-preview", name: "Gemini 3 Flash", reasoning: false, vision: true },
 	{ id: "qwen3-vl:235b-instruct", name: "Qwen 3 VL", reasoning: false, vision: true },
@@ -92,11 +93,10 @@ export default function (pi: ExtensionAPI) {
 		if (registeredModelIds.join(",") === ids.join(",")) return;
 		registeredModelIds = ids;
 
-		pi.registerProvider(PROVIDER_ID, {
+		const providerConfig: any = {
 			baseUrl: BASE_URL,
 			api: "openai-completions",
 			authHeader: true,
-			apiKey: envKey,
 			models: modelConfigs,
 			oauth: {
 				name: "Ollama Cloud",
@@ -124,7 +124,11 @@ export default function (pi: ExtensionAPI) {
 					return creds.access;
 				},
 			},
-		});
+		};
+		if (envKey) {
+			providerConfig.apiKey = envKey;
+		}
+		pi.registerProvider(PROVIDER_ID, providerConfig);
 	}
 
 	registerModels(DEFAULT_MODELS.map(buildDefaultModelConfig));
