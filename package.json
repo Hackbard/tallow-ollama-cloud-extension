@@ -1,6 +1,6 @@
 {
 	"name": "tallow-ollama-cloud-extension",
-	"version": "0.1.2",
+	"version": "0.2.0",
 	"description": "Tallow extension for Ollama Cloud with live model discovery and /login support",
 	"keywords": [
 		"tallow",
